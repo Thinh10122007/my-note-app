@@ -4,7 +4,7 @@ import json
 import os
 
 # 1. Cấu hình trang
-st.set_page_config(page_title="Lịch Công Việc", page_icon="📅", layout="wide")
+st.set_page_config(page_title="Lịch Công Việc", layout="wide")
 
 # 2. BỘ CSS FIX LỖI GIAO DIỆN TOÀN DIỆN (CẢ PC VÀ MOBILE) - ĐÃ FIX LỖI ẨN LỊCH
 st.markdown("""
