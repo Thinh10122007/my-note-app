@@ -3,27 +3,27 @@ from streamlit_calendar import calendar
 import json
 import os
 
-# Cấu hình trang - Bắt buộc phải có để tối ưu giao diện màn hình
-st.set_page_config(page_title="Lịch Công Việc Mobile", page_icon="📅", layout="wide")
+# 1. Cấu hình trang (Phải luôn ở đầu file)
+st.set_page_config(page_title="Lịch Công Việc", page_icon="📅", layout="wide")
 
-# CSS tối ưu riêng cho giao diện điện thoại (Ẩn các khoảng trống thừa, fix tràn lịch)
+# 2. CSS tối ưu giao diện: Sửa lỗi tràn khung và chỉnh màu font chữ lịch cho dễ nhìn
 st.markdown("""
     <style>
-    /* Giảm khoảng cách viền trên điện thoại */
     .block-container {
-        padding-top: 1rem !important;
-        padding-bottom: 1rem !important;
-        padding-left: 1rem !important;
-        padding-right: 1rem !important;
+        padding: 1.5rem 1rem !important;
     }
-    /* Ép lịch không được tràn quá màn hình dọc */
+    /* Đảm bảo khung lịch luôn có chiều cao tối thiểu và hiển thị tốt trên nền tối */
     .fc {
         max-width: 100% !important;
-        font-size: 12px !important; /* Thu nhỏ chữ trên lịch một chút để vừa màn hình đt */
+        background-color: #1e1e1e !important;
+        padding: 10px;
+        border-radius: 8px;
     }
-    .fc .fc-toolbar {
-        flex-direction: column !important;
-        gap: 5px;
+    .fc a {
+        color: #ffffff !important; /* Đổi chữ ngày tháng thành màu trắng */
+    }
+    .fc-theme-standard td, .fc-theme-standard th {
+        border: 1px solid #444444 !important; /* Làm rõ đường kẻ ô */
     }
     </style>
 """, unsafe_allow_html=True)
@@ -32,11 +32,14 @@ st.title("📅 Lịch Trình Cá Nhân")
 
 DATA_FILE = "data.json"
 
+# --- HÀM XỬ LÝ DATA ---
 def load_data():
     if os.path.exists(DATA_FILE):
         with open(DATA_FILE, "r", encoding="utf-8") as f:
-            try: return json.load(f)
-            except: return []
+            try:
+                return json.load(f)
+            except:
+                return []
     return []
 
 def save_data(data):
@@ -46,8 +49,7 @@ def save_data(data):
 if "events" not in st.session_state:
     st.session_state.events = load_data()
 
-# --- GIẢI PHÁP FIX LỖI ĐIỆN THOẠI: Dùng tab thay vì chia cột ngang ---
-# Trên máy tính sẽ nhìn thấy 2 Tab, trên điện thoại các tab này bấm chuyển đổi cực kỳ mượt mà không bị tràn màn hình.
+# --- CHIA TAB GIAO DIỆN ---
 tab_them, tab_lich = st.tabs(["➕ Thêm & Quản lý", "🗓️ Xem Lịch Trình"])
 
 with tab_them:
@@ -55,11 +57,10 @@ with tab_them:
     with st.form("event_form", clear_on_submit=True):
         title = st.text_input("Tên công việc:", placeholder="Ví dụ: Họp nhóm, Đi chợ...")
         
-        # Chia cột nhỏ cho ngày (chỉ chia 2 cột nên điện thoại vẫn hiển thị tốt)
         col_d1, col_d2 = st.columns(2)
         with col_d1:
             start_date = st.date_input("Từ ngày:")
-        with col_date2 if 'col_date2' in locals() else col_d2:
+        with col_d2:
             end_date = st.date_input("Đến ngày:")
             
         color = st.color_picker("Chọn màu hiển thị:", "#00F29D")
@@ -76,14 +77,14 @@ with tab_them:
             }
             st.session_state.events.append(new_event)
             save_data(st.session_state.events)
-            st.success("Đã thêm thành công!")
+            st.success("Đã thêm công việc thành công!")
             st.rerun()
 
     st.subheader("🗑️ Danh sách đã thêm")
     if st.session_state.events:
         for idx, ev in enumerate(st.session_state.events):
             col_t, col_b = st.columns([4, 1])
-            col_t.write(f"🎨 {ev['title']} ({ev['start']})")
+            col_t.write(f"🎨 **{ev['title']}** ({ev['start']} đến {ev['end']})")
             if col_b.button("Xóa", key=f"del_{idx}"):
                 st.session_state.events.pop(idx)
                 save_data(st.session_state.events)
@@ -92,21 +93,22 @@ with tab_them:
         st.caption("Chưa có công việc nào.")
 
 with tab_lich:
-    st.subheader("Lịch Trình")
+    st.subheader("Lịch Trình Chi Tiết")
     
-    # Cấu hình lịch thông minh: Mặc định xem theo Tháng, nhưng rút gọn các nút trên điện thoại
+    # Cấu hình chuẩn cho FullCalendar
     calendar_options = {
         "editable": True,
         "selectable": True,
         "headerToolbar": {
             "left": "prev,next today",
             "center": "title",
-            "right": "dayGridMonth,timeGridDay", # Chỉ để lại chế độ Tháng và Ngày cho gọn
+            "right": "dayGridMonth,timeGridDay",
         },
         "initialView": "dayGridMonth",
     }
     
-    calendar(events=st.session_state.events, options=calendar_options, key="calendar_mobile")
+    # Gọi component lịch
+    calendar(events=st.session_state.events, options=calendar_options, key="calendar_fixed")
 
 # --- THÔNG TIN BẢN QUYỀN Ở GÓC DƯỚI TRÁI ---
 st.markdown(
