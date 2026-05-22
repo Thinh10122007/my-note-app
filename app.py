@@ -5,7 +5,7 @@ import os
 
 st.set_page_config(page_title="Lịch Công Việc", page_icon="📅", layout="wide")
 
-st.title("📅 Lịch Trình & Công Việc Màu Sắc (Lưu File)")
+st.title("📅 Lịch Trình & Công Việc")
 
 # Đường dẫn đến file lưu dữ liệu
 DATA_FILE = "data.json"
