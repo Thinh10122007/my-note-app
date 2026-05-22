@@ -6,23 +6,23 @@ import os
 # 1. Cấu hình trang
 st.set_page_config(page_title="Lịch Công Việc", page_icon="📅", layout="wide")
 
-# 2. CSS TỐI ƯU TOÀN DIỆN (Sửa lỗi máy tính & điện thoại)
+# 2. CSS SIÊU TỐI ƯU ĐA NỀN TẢNG (RESPONSIVE)
 st.markdown("""
     <style>
-    /* Loại bỏ khoảng trống thừa của Streamlit */
+    /* Tổng thể khoảng cách trang */
     .block-container {
         padding: 1rem !important;
     }
     
-    /* 1. SỬA LỖI TRÊN MÁY TÍNH: Mất cột cuộn dọc thừa và làm lịch gọn lại */
+    /* --- CẤU HÌNH TRÊN MÁY TÍNH --- */
     .fc {
-        max-width: 95% !important; /* Nhỏ lại 1 xíu so với màn hình */
-        margin: 0 auto !important; /* Căn giữa lịch */
+        max-width: 95% !important;
+        margin: 0 auto !important;
         background-color: #1e1e1e !important;
         padding: 15px;
         border-radius: 8px;
     }
-    /* Khóa chiều cao cố định để không sinh ra thanh cuộn dọc (scrollbar) bên trong lịch */
+    /* Loại bỏ thanh cuộn dọc phiền phức */
     .fc-scroller {
         overflow: hidden !important; 
         height: auto !important;
@@ -31,30 +31,53 @@ st.markdown("""
         height: auto !important;
     }
 
-    /* 2. SỬA LỖI TRÊN ĐIỆN THOẠI: Sắp xếp các nút mũi tên, today, month, day không bị đè nhau */
+    /* --- CẤU HÌNH TRÊN ĐIỆN THOẠI (Dưới 768px) --- */
     @media (max-width: 768px) {
-        .fc .fc-toolbar {
-            display: flex !important;
-            flex-direction: column !important; /* Xếp thành các dòng dọc */
-            gap: 8px !important;
-            align-items: center !important;
-        }
-        .fc .fc-toolbar-title {
-            font-size: 1.2rem !important; /* Thu nhỏ tiêu đề tháng/năm */
-            margin: 4px 0;
-        }
-        .fc .fc-button {
-            padding: 4px 8px !important; /* Thu nhỏ kích thước nút */
+        /* Thu nhỏ toàn bộ font chữ lịch */
+        .fc {
+            padding: 8px !important;
             font-size: 11px !important;
         }
+        
+        /* Đập hộp thanh công cụ điều hướng để sắp xếp lại dạng dọc */
+        .fc .fc-toolbar {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 10px !important;
+            align-items: center !important;
+        }
+        
+        /* Ép các nhóm nút (Trái, Giữa, Phải) co giãn vừa 100% chiều ngang */
         .fc-header-toolbar .fc-toolbar-chunk {
             display: flex !important;
             justify-content: center !important;
+            align-items: center !important;
             width: 100% !important;
+            flex-wrap: wrap !important; /* Tự xuống hàng nếu nút quá dài */
+            gap: 5px !important;
+        }
+        
+        /* Thu nhỏ tiêu đề Tháng / Năm */
+        .fc .fc-toolbar-title {
+            font-size: 1.1rem !important;
+            text-align: center !important;
+            margin: 2px 0 !important;
+        }
+        
+        /* Thu nhỏ kích thước và khoảng cách các nút */
+        .fc .fc-button {
+            padding: 4px 8px !important;
+            font-size: 11px !important;
+            margin: 0 !important;
+        }
+        
+        /* Làm mượt các ô lịch di động */
+        .fc-daygrid-day-number {
+            padding: 2px !important;
         }
     }
 
-    /* Màu chữ hiển thị ngày tháng */
+    /* Định dạng màu sắc đường kẻ và chữ */
     .fc a { color: #ffffff !important; }
     .fc-theme-standard td, .fc-theme-standard th { border: 1px solid #444444 !important; }
     </style>
@@ -78,7 +101,7 @@ def save_data(data):
 if "events" not in st.session_state:
     st.session_state.events = load_data()
 
-# --- CHIA TAB GIAO DIỆN ---
+# --- BIẾN ĐỔI TAB GIAO DIỆN ---
 tab_them, tab_lich = st.tabs(["➕ Thêm & Quản lý", "🗓️ Xem Lịch Trình"])
 
 with tab_them:
@@ -133,12 +156,12 @@ with tab_lich:
             "right": "dayGridMonth,timeGridDay",
         },
         "initialView": "dayGridMonth",
-        "height": "auto", # Ép lịch tự động tính chiều cao theo ô thay vì sinh thanh cuộn
+        "height": "auto", 
     }
     
-    calendar(events=st.session_state.events, options=calendar_options, key="calendar_final")
+    calendar(events=st.session_state.events, options=calendar_options, key="calendar_responsive")
 
-# --- THÔNG TIN BẢN QUYỀN Ở GÓC DƯỚI TRÁI ---
+# --- BẢN QUYỀN GÓC DƯỚI TRÁI ---
 st.markdown(
     """
     <style>
@@ -155,7 +178,7 @@ st.markdown(
         pointer-events: none;
     }
     </style>
-    <div class="copyright-footer">© 2026 kendev</div>
+    <div class="copyright-footer">© 2026 Powered by Thinh</div>
     """,
     unsafe_allow_html=True
 )
