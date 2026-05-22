@@ -1,187 +1,436 @@
-import streamlit as st
-from streamlit_calendar import calendar
-import json
-import os
-
-# 1. Cấu hình trang
-st.set_page_config(page_title="Lịch Công Việc", layout="wide")
-
-# 2. BỘ CSS FIX LỖI GIAO DIỆN TOÀN DIỆN (CẢ PC VÀ MOBILE) - ĐÃ FIX LỖI ẨN LỊCH
-st.markdown("""
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lịch Công Việc</title>
+    
+    <!-- Tải thư viện FullCalendar từ CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+    
     <style>
-    /* Khoảng cách viền trang tổng thể */
-    .block-container {
-        padding: 1rem !important;
-    }
-    
-    /* FIX LỖI PC: Đảm bảo lịch luôn hiển thị, thu gọn vừa vặn */
-    .fc {
-        max-width: 95% !important;
-        margin: 0 auto 20px auto !important;
-        background-color: #1e1e1e !important; /* Ép lịch luôn ở giao diện tối sang trọng */
-        color: #ffffff !important;
-        padding: 15px;
-        border-radius: 12px;
-        border: 1px solid #333333;
-    }
-    
-    /* FIX CHÍNH XÁC: Ẩn thanh cuộn dọc/ngang xấu xí nhưng KHÔNG làm sập chiều cao của lịch */
-    .fc-scroller {
-        -ms-overflow-style: none;  /* IE và Edge */
-        scrollbar-width: none;  /* Firefox */
-    }
-    .fc-scroller::-webkit-scrollbar {
-        display: none; /* Chrome, Safari và Opera */
-    }
+        /* --- CẤU HÌNH GIAO DIỆN TỔNG THỂ (DARK MODE) --- */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
 
-    /* Định dạng màu chữ ngày tháng và đường kẻ */
-    .fc a { color: #ffffff !important; text-decoration: none !important; }
-    .fc-theme-standard td, .fc-theme-standard th { border: 1px solid #444444 !important; }
-    .fc-col-header-cell-cushion { padding: 8px 0 !important; }
+        body {
+            background-color: #0f1115;
+            color: #ffffff;
+            padding: 1rem;
+            padding-bottom: 30px;
+        }
 
-    /* --- FIX LỖI MOBILE (Dưới 768px): Sắp xếp các nút điều hướng cực đẹp --- */
-    @media (max-width: 768px) {
+        h1 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            font-size: 1.8rem;
+        }
+
+        /* --- CẤU HÌNH TABS (GIỐNG STREAMLIT) --- */
+        .tabs-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .tab-headers {
+            display: flex;
+            border-bottom: 1px solid #333;
+            margin-bottom: 1.5rem;
+            gap: 10px;
+        }
+
+        .tab-button {
+            background: none;
+            border: none;
+            color: #888;
+            padding: 10px 20px;
+            font-size: 1rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab-button.active {
+            color: #00F29D;
+            border-bottom: 2px solid #00F29D;
+            font-weight: bold;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* --- FORM & QUẢN LÝ CÔNG VIỆC --- */
+        .form-section {
+            background-color: #1a1d24;
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid #333;
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+
+        input[type="text"], input[type="date"] {
+            width: 100%;
+            padding: 10px;
+            background-color: #262930;
+            border: 1px solid #444;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 1rem;
+        }
+
+        input[type="color"] {
+            width: 60px;
+            height: 35px;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-submit {
+            background-color: #ff4b4b;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        /* Danh sách đã thêm */
+        .event-list {
+            margin-top: 1.5rem;
+        }
+
+        .event-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #1a1d24;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            margin-bottom: 8px;
+        }
+
+        .btn-delete {
+            background-color: transparent;
+            color: #ff4b4b;
+            border: 1px solid #ff4b4b;
+            padding: 5px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-delete:hover {
+            background-color: #ff4b4b;
+            color: white;
+        }
+
+        .no-event {
+            color: #888;
+            font-style: italic;
+        }
+
+        /* --- BỘ CSS SANG TRỌNG CHO FULLCALENDAR --- */
         .fc {
-            padding: 8px !important;
-            font-size: 11px !important;
+            max-width: 100% !important;
+            margin: 0 auto !important;
+            background-color: #1e1e1e !important;
+            color: #ffffff !important;
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid #333333;
         }
-        /* Tổ chức lại thanh công cụ của lịch */
-        .fc .fc-toolbar {
-            display: grid !important;
-            grid-template-columns: 1fr !important; /* Xếp thành các hàng dọc độc lập */
-            gap: 10px !important;
-            justify-items: center !important;
-            text-align: center !important;
+
+        /* Ẩn thanh cuộn xấu xí */
+        .fc-scroller {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
-        /* Căn chỉnh lại cụm nút điều hướng (Trái, Giữa, Phải) */
-        .fc-header-toolbar .fc-toolbar-chunk {
-            display: flex !important;
-            justify-content: center !important;
-            align-items: center !important;
-            gap: 4px !important;
-            width: 100% !important;
+        .fc-scroller::-webkit-scrollbar {
+            display: none;
         }
-        /* Thu nhỏ tiêu đề Tháng / Năm để không bị đẩy dòng */
-        .fc .fc-toolbar-title {
-            font-size: 1.2rem !important;
-            font-weight: bold !important;
-            color: #00F29D !important; /* Làm nổi bật tiêu đề tháng */
-        }
-        /* Tối ưu hóa kích cỡ các nút bấm vừa vặn ngón tay trên điện thoại */
-        .fc .fc-button {
-            padding: 6px 10px !important;
-            font-size: 11px !important;
-            line-height: 1 !important;
-            margin: 0 2px !important;
+
+        .fc a { color: #ffffff !important; text-decoration: none !important; }
+        .fc-theme-standard td, .fc-theme-standard th { border: 1px solid #444444 !important; }
+        
+        /* Chỉnh màu nút của FullCalendar gốc */
+        .fc .fc-button-primary {
             background-color: #333333 !important;
             border-color: #444444 !important;
             color: #ffffff !important;
         }
-        .fc .fc-button-active {
-            background-color: #00F29D !important; /* Màu xanh khi đang được chọn */
+        .fc .fc-button-primary:not(:disabled).fc-button-active, 
+        .fc .fc-button-primary:not(:disabled):active {
+            background-color: #00F29D !important;
             color: #000000 !important;
+            border-color: #00F29D !important;
         }
-    }
-    </style>
-""", unsafe_allow_html=True)
 
-st.title("📅 Lịch Trình Cá Nhân")
-
-DATA_FILE = "data.json"
-
-def load_data():
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r", encoding="utf-8") as f:
-            try: return json.load(f)
-            except: return []
-    return []
-
-def save_data(data):
-    with open(DATA_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
-
-if "events" not in st.session_state:
-    st.session_state.events = load_data()
-
-# --- CHUYỂN ĐỔI TAB GIAO DIỆN CHỐNG TRÀN ---
-tab_them, tab_lich = st.tabs(["➕ Thêm & Quản lý", "🗓️ Xem Lịch Trình"])
-
-with tab_them:
-    st.subheader("Thêm Công Việc Mới")
-    with st.form("event_form", clear_on_submit=True):
-        title = st.text_input("Tên công việc:", placeholder="Ví dụ: Đi chụp hình, Họp nhóm...")
-        
-        col_d1, col_d2 = st.columns(2)
-        with col_d1:
-            start_date = st.date_input("Từ ngày:")
-        with col_d2:
-            end_date = st.date_input("Đến ngày:")
-            
-        color = st.color_picker("Chọn màu hiển thị:", "#FF4B4B")
-        submit = st.form_submit_button("Thêm vào lịch")
-        
-        if submit and title:
-            new_event = {
-                "title": title,
-                "start": start_date.strftime("%Y-%m-%d"),
-                "end": end_date.strftime("%Y-%m-%d"),
-                "backgroundColor": color,
-                "borderColor": color,
-                "textColor": "#FFFFFF"
+        /* --- FIX LỖI MOBILE (DƯỚI 768PX) --- */
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+                gap: 10px;
             }
-            st.session_state.events.append(new_event)
-            save_data(st.session_state.events)
-            st.success("Đã thêm công việc thành công!")
-            st.rerun()
+            .fc {
+                padding: 8px !important;
+                font-size: 11px !important;
+            }
+            .fc .fc-toolbar {
+                display: grid !important;
+                grid-template-columns: 1fr !important;
+                gap: 10px !important;
+                justify-items: center !important;
+                text-align: center !important;
+            }
+            .fc-header-toolbar .fc-toolbar-chunk {
+                display: flex !important;
+                justify-content: center !important;
+                align-items: center !important;
+                gap: 4px !important;
+                width: 100% !important;
+            }
+            .fc .fc-toolbar-title {
+                font-size: 1.2rem !important;
+                font-weight: bold !important;
+                color: #00F29D !important;
+            }
+            .fc .fc-button {
+                padding: 6px 10px !important;
+                font-size: 11px !important;
+            }
+        }
 
-    st.subheader("🗑️ Danh sách đã thêm")
-    if st.session_state.events:
-        for idx, ev in enumerate(st.session_state.events):
-            col_t, col_b = st.columns([4, 1])
-            col_t.write(f"🎨 **{ev['title']}** ({ev['start']} đến {ev['end']})")
-            if col_b.button("Xóa", key=f"del_{idx}"):
-                st.session_state.events.pop(idx)
-                save_data(st.session_state.events)
-                st.rerun()
-    else:
-        st.caption("Chưa có công việc nào.")
-
-with tab_lich:
-    st.subheader("Lịch Trình Chi Tiết")
-    
-    calendar_options = {
-        "editable": True,
-        "selectable": True,
-        "headerToolbar": {
-            "left": "prev,next today",
-            "center": "title",
-            "right": "dayGridMonth,timeGridDay",
-        },
-        "initialView": "dayGridMonth",
-        "height": "auto", 
-    }
-    
-    # Render component lịch
-    calendar(events=st.session_state.events, options=calendar_options, key="calendar_perfect")
-
-# --- THÔNG TIN BẢN QUYỀN CỐ ĐỊNH GÓC DƯỚI TRÁI ---
-st.markdown(
-    """
-    <style>
-    .copyright-footer {
-        position: fixed;
-        bottom: 5px;
-        left: 5px;
-        background-color: rgba(0, 0, 0, 0.8);
-        color: #ffffff;
-        padding: 4px 10px;
-        border-radius: 4px;
-        font-size: 10px;
-        z-index: 9999;
-        pointer-events: none;
-    }
+        /* --- COPYRIGHT FOOTER CỐ ĐỊNH --- */
+        .copyright-footer {
+            position: fixed;
+            bottom: 5px;
+            left: 5px;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: #ffffff;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 10px;
+            z-index: 9999;
+            pointer-events: none;
+        }
     </style>
+</head>
+<body>
+
+    <h1>📅 Lịch Trình Cá Nhân</h1>
+
+    <div class="tabs-container">
+        <!-- Thanh điều hướng Tab -->
+        <div class="tab-headers">
+            <button class="tab-button active" onclick="switchTab('tab-them')">➕ Thêm & Quản lý</button>
+            <button class="tab-button" onclick="switchTab('tab-lich')">🗓️ Xem Lịch Trình</button>
+        </div>
+
+        <!-- TAB 1: THÊM & QUẢN LÝ -->
+        <div id="tab-them" class="tab-content active">
+            <div class="form-section">
+                <h3 style="margin-bottom:15px;">Thêm Công Việc Mới</h3>
+                <form id="eventForm">
+                    <div class="form-group">
+                        <label>Tên công việc:</label>
+                        <input type="text" id="title" placeholder="Ví dụ: Đi chụp hình, Họp nhóm..." required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Từ ngày:</label>
+                            <input type="date" id="startDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Đến ngày:</label>
+                            <input type="date" id="endDate" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Chọn màu hiển thị:</label>
+                        <input type="color" id="colorPicker" value="#FF4B4B">
+                    </div>
+                    <button type="submit" class="btn-submit">Thêm vào lịch</button>
+                </form>
+            </div>
+
+            <h3>🗑️ Danh sách đã thêm</h3>
+            <div id="eventList" class="event-list"></div>
+        </div>
+
+        <!-- TAB 2: XEM LỊCH TRÌNH -->
+        <div id="tab-lich" class="tab-content">
+            <h3 style="margin-bottom:15px;">Lịch Trình Chi Tiết</h3>
+            <div id="calendar"></div>
+        </div>
+    </div>
+
+    <!-- Bản quyền cố định góc dưới trái -->
     <div class="copyright-footer">© 2026 Powered by Thinh</div>
-    """,
-    unsafe_allow_html=True
-)
+
+    <script>
+        // --- QUẢN LÝ DỮ LIỆU LOCALSTORAGE ---
+        let events = JSON.parse(localStorage.getItem('calendar_events')) || [];
+        let calendar;
+
+        // Tự động điền ngày hôm nay vào ô input date cho tiện lợi
+        const todayStr = new Date().toISOString().split('T')[0];
+        document.getElementById('startDate').value = todayStr;
+        document.getElementById('endDate').value = todayStr;
+
+        // --- XỬ LÝ CHUYỂN TAB ---
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            
+            document.getElementById(tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+
+            // Cần cập nhật lại kích thước lịch nếu chuyển sang tab lịch
+            if (tabId === 'tab-lich' && calendar) {
+                setTimeout(() => {
+                    calendar.updateSize();
+                }, 50);
+            }
+        }
+
+        // --- HÀM RENDER DANH SÁCH CÔNG VIỆC ĐÃ THÊM ---
+        function renderEventList() {
+            const listContainer = document.getElementById('eventList');
+            listContainer.innerHTML = '';
+
+            if (events.length === 0) {
+                listContainer.innerHTML = '<p class="no-event">Chưa có công việc nào.</p>';
+                return;
+            }
+
+            events.forEach((ev, idx) => {
+                const item = document.createElement('div');
+                item.className = 'event-item';
+                
+                // Chuẩn hóa chuỗi ngày hiển thị (vì FullCalendar tăng ngày kết thúc lên 1, cần giảm lại khi hiển thị text)
+                let displayEnd = ev.end;
+                if(ev.end !== ev.start) {
+                    let d = new Date(ev.end);
+                    d.setDate(d.getDate() - 1);
+                    displayEnd = d.toISOString().split('T')[0];
+                }
+
+                item.innerHTML = `
+                    <div>
+                        <span style="display:inline-block; width:12px; height:12px; background:${ev.backgroundColor}; border-radius:50%; margin-right:5px;"></span>
+                        <strong>${ev.title}</strong> (${ev.start} đến ${displayEnd})
+                    </div>
+                    <button class="btn-delete" onclick="deleteEvent(${idx})">Xóa</button>
+                `;
+                listContainer.appendChild(item);
+            });
+        }
+
+        // --- HÀM XÓA CÔNG VIỆC ---
+        function deleteEvent(index) {
+            events.splice(index, 1);
+            localStorage.setItem('calendar_events', JSON.stringify(events));
+            renderEventList();
+            if (calendar) {
+                calendar.removeAllEvents();
+                calendar.addEventSource(events);
+            }
+        }
+
+        // --- SỰ KIỆN SUBMIT FORM ---
+        document.getElementById('eventForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const title = document.getElementById('title').value;
+            const start = document.getElementById('startDate').value;
+            let end = document.getElementById('endDate').value;
+            const color = document.getElementById('colorPicker').value;
+
+            // Mẹo kỹ thuật của FullCalendar: Ngày kết thúc của sự kiện All-Day mang tính loại trừ,
+            // nên cần cộng thêm 1 ngày để dải màu hiển thị trọn vẹn trên lịch.
+            let endDateObj = new Date(end);
+            endDateObj.setDate(endDateObj.getDate() + 1);
+            const fullCalendarEnd = endDateObj.toISOString().split('T')[0];
+
+            const newEvent = {
+                title: title,
+                start: start,
+                end: fullCalendarEnd,
+                backgroundColor: color,
+                borderColor: color,
+                textColor: '#FFFFFF',
+                allDay: true
+            };
+
+            events.push(newEvent);
+            localStorage.setItem('calendar_events', JSON.stringify(events));
+            
+            // Reset form
+            document.getElementById('title').value = '';
+            document.getElementById('startDate').value = todayStr;
+            document.getElementById('endDate').value = todayStr;
+
+            renderEventList();
+            
+            if (calendar) {
+                calendar.removeAllEvents();
+                calendar.addEventSource(events);
+            }
+
+            alert("Đã thêm công việc thành công!");
+        });
+
+        // --- KHỞI TẠO FULLCALENDAR LÀM MƯỢT ---
+        document.addEventListener('DOMContentLoaded', function() {
+            renderEventList();
+
+            const calendarEl = document.getElementById('calendar');
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                height: 'auto',
+                editable: true,
+                selectable: true,
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridDay'
+                },
+                events: events,
+                locale: 'vi' // Chuyển ngôn ngữ nút bấm tự động nếu thư viện hỗ trợ
+            });
+            calendar.render();
+        });
+    </script>
+</body>
+</html>
