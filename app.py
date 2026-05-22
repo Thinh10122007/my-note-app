@@ -3,28 +3,60 @@ from streamlit_calendar import calendar
 import json
 import os
 
-# 1. Cấu hình trang (Phải luôn ở đầu file)
+# 1. Cấu hình trang
 st.set_page_config(page_title="Lịch Công Việc", page_icon="📅", layout="wide")
 
-# 2. CSS tối ưu giao diện: Sửa lỗi tràn khung và chỉnh màu font chữ lịch cho dễ nhìn
+# 2. CSS TỐI ƯU TOÀN DIỆN (Sửa lỗi máy tính & điện thoại)
 st.markdown("""
     <style>
+    /* Loại bỏ khoảng trống thừa của Streamlit */
     .block-container {
-        padding: 1.5rem 1rem !important;
+        padding: 1rem !important;
     }
-    /* Đảm bảo khung lịch luôn có chiều cao tối thiểu và hiển thị tốt trên nền tối */
+    
+    /* 1. SỬA LỖI TRÊN MÁY TÍNH: Mất cột cuộn dọc thừa và làm lịch gọn lại */
     .fc {
-        max-width: 100% !important;
+        max-width: 95% !important; /* Nhỏ lại 1 xíu so với màn hình */
+        margin: 0 auto !important; /* Căn giữa lịch */
         background-color: #1e1e1e !important;
-        padding: 10px;
+        padding: 15px;
         border-radius: 8px;
     }
-    .fc a {
-        color: #ffffff !important; /* Đổi chữ ngày tháng thành màu trắng */
+    /* Khóa chiều cao cố định để không sinh ra thanh cuộn dọc (scrollbar) bên trong lịch */
+    .fc-scroller {
+        overflow: hidden !important; 
+        height: auto !important;
     }
-    .fc-theme-standard td, .fc-theme-standard th {
-        border: 1px solid #444444 !important; /* Làm rõ đường kẻ ô */
+    .fc-scroller-harness {
+        height: auto !important;
     }
+
+    /* 2. SỬA LỖI TRÊN ĐIỆN THOẠI: Sắp xếp các nút mũi tên, today, month, day không bị đè nhau */
+    @media (max-width: 768px) {
+        .fc .fc-toolbar {
+            display: flex !important;
+            flex-direction: column !important; /* Xếp thành các dòng dọc */
+            gap: 8px !important;
+            align-items: center !important;
+        }
+        .fc .fc-toolbar-title {
+            font-size: 1.2rem !important; /* Thu nhỏ tiêu đề tháng/năm */
+            margin: 4px 0;
+        }
+        .fc .fc-button {
+            padding: 4px 8px !important; /* Thu nhỏ kích thước nút */
+            font-size: 11px !important;
+        }
+        .fc-header-toolbar .fc-toolbar-chunk {
+            display: flex !important;
+            justify-content: center !important;
+            width: 100% !important;
+        }
+    }
+
+    /* Màu chữ hiển thị ngày tháng */
+    .fc a { color: #ffffff !important; }
+    .fc-theme-standard td, .fc-theme-standard th { border: 1px solid #444444 !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -32,14 +64,11 @@ st.title("📅 Lịch Trình Cá Nhân")
 
 DATA_FILE = "data.json"
 
-# --- HÀM XỬ LÝ DATA ---
 def load_data():
     if os.path.exists(DATA_FILE):
         with open(DATA_FILE, "r", encoding="utf-8") as f:
-            try:
-                return json.load(f)
-            except:
-                return []
+            try: return json.load(f)
+            except: return []
     return []
 
 def save_data(data):
@@ -55,7 +84,7 @@ tab_them, tab_lich = st.tabs(["➕ Thêm & Quản lý", "🗓️ Xem Lịch Trì
 with tab_them:
     st.subheader("Thêm Công Việc Mới")
     with st.form("event_form", clear_on_submit=True):
-        title = st.text_input("Tên công việc:", placeholder="Ví dụ: Họp nhóm, Đi chợ...")
+        title = st.text_input("Tên công việc:", placeholder="Ví dụ: Họp nhóm...")
         
         col_d1, col_d2 = st.columns(2)
         with col_d1:
@@ -95,7 +124,6 @@ with tab_them:
 with tab_lich:
     st.subheader("Lịch Trình Chi Tiết")
     
-    # Cấu hình chuẩn cho FullCalendar
     calendar_options = {
         "editable": True,
         "selectable": True,
@@ -105,10 +133,10 @@ with tab_lich:
             "right": "dayGridMonth,timeGridDay",
         },
         "initialView": "dayGridMonth",
+        "height": "auto", # Ép lịch tự động tính chiều cao theo ô thay vì sinh thanh cuộn
     }
     
-    # Gọi component lịch
-    calendar(events=st.session_state.events, options=calendar_options, key="calendar_fixed")
+    calendar(events=st.session_state.events, options=calendar_options, key="calendar_final")
 
 # --- THÔNG TIN BẢN QUYỀN Ở GÓC DƯỚI TRÁI ---
 st.markdown(
