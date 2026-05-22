@@ -6,7 +6,7 @@ import os
 # 1. Cấu hình trang
 st.set_page_config(page_title="Lịch Công Việc", page_icon="📅", layout="wide")
 
-# 2. BỘ CSS FIX LỖI GIAO DIỆN TOÀN DIỆN (CẢ PC VÀ MOBILE)
+# 2. BỘ CSS FIX LỖI GIAO DIỆN TOÀN DIỆN (CẢ PC VÀ MOBILE) - ĐÃ FIX LỖI ẨN LỊCH
 st.markdown("""
     <style>
     /* Khoảng cách viền trang tổng thể */
@@ -14,7 +14,7 @@ st.markdown("""
         padding: 1rem !important;
     }
     
-    /* FIX LỖI PC: Đảm bảo lịch luôn hiển thị, không bị che mất, thu gọn vừa vặn */
+    /* FIX LỖI PC: Đảm bảo lịch luôn hiển thị, thu gọn vừa vặn */
     .fc {
         max-width: 95% !important;
         margin: 0 auto 20px auto !important;
@@ -25,14 +25,13 @@ st.markdown("""
         border: 1px solid #333333;
     }
     
-    /* Sửa thuộc tính scroller để biến mất thanh cuộn dọc nhưng KHÔNG nuốt mất lịch */
+    /* FIX CHÍNH XÁC: Ẩn thanh cuộn dọc/ngang xấu xí nhưng KHÔNG làm sập chiều cao của lịch */
     .fc-scroller {
-        overflow: visible !important;
-        height: auto !important;
+        -ms-overflow-style: none;  /* IE và Edge */
+        scrollbar-width: none;  /* Firefox */
     }
-    .fc-scroller-harness {
-        overflow: visible !important;
-        height: auto !important;
+    .fc-scroller::-webkit-scrollbar {
+        display: none; /* Chrome, Safari và Opera */
     }
 
     /* Định dạng màu chữ ngày tháng và đường kẻ */
